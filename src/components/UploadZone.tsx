@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
-import { Upload, File, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { UploadCloud, Loader2, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface UploadZoneProps {
@@ -11,136 +11,62 @@ interface UploadZoneProps {
 
 export default function UploadZone({ onUploadSuccess }: UploadZoneProps) {
   const [dragActive, setDragActive] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<'idle' | 'uploading' | 'success'>('idle');
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
 
   const processFile = async (file: File) => {
     if (!file) return;
     
-    setUploading(true);
-    setError(null);
+    setStatus('uploading');
     setProgress(0);
 
     try {
       const newBlob = await upload(file.name, file, {
         access: 'public',
         handleUploadUrl: '/api/upload',
-        onUploadProgress: (progressEvent) => {
-          setProgress(progressEvent.percentage);
-        },
+        onUploadProgress: (p) => setProgress(p.percentage),
       });
 
       onUploadSuccess(newBlob);
-      setProgress(100);
-      setTimeout(() => {
-        setUploading(false);
-        setProgress(0);
-      }, 1000);
+      setStatus('success');
+      setTimeout(() => setStatus('idle'), 2000);
     } catch (err) {
       console.error(err);
-      setError('Upload failed. Please try again.');
-      setUploading(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-      processFile(e.target.files[0]);
+      setStatus('idle');
     }
   };
 
   return (
-    <div className="glass-card animate-slide-up">
-      <div 
-        className={`upload-zone ${dragActive ? 'dragging' : ''} ${uploading ? 'uploading' : ''}`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        onClick={() => !uploading && fileInputRef.current?.click()}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden-input"
-          style={{ display: 'none' }}
-          onChange={handleChange}
-          disabled={uploading}
-        />
+    <div 
+      className={`upload-card ${dragActive ? 'active' : ''}`}
+      onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+      onDragLeave={() => setDragActive(false)}
+      onDrop={(e) => { e.preventDefault(); setDragActive(false); if(e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); }}
+      onClick={() => status === 'idle' && fileInputRef.current?.click()}
+    >
+      <input 
+        ref={fileInputRef} 
+        type="file" 
+        style={{ display: 'none' }} 
+        onChange={(e) => e.target.files?.[0] && processFile(e.target.files[0])}
+      />
 
+      <div className="upload-orb">
         <AnimatePresence mode="wait">
-          {!uploading ? (
-            <motion.div 
-              key="idle"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="upload-content"
-            >
-              <div className="upload-icon">
-                <Upload size={48} />
-              </div>
-              <div className="upload-text">
-                <h3>Drag & Drop your files</h3>
-                <p>or click to browse from computer</p>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div 
-              key="uploading"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="upload-content"
-            >
-              <div className="progress-container">
-                <div className="spinner" style={{ width: '48px', height: '48px', margin: '0 auto 1.5rem' }}></div>
-                <h3>Uploading... {progress}%</h3>
-                <div className="progress-bar-bg" style={{ width: '200px', height: '4px', background: 'var(--border)', borderRadius: '2px', marginTop: '1rem', overflow: 'hidden' }}>
-                    <motion.div 
-                        className="progress-bar-fill" 
-                        style={{ height: '100%', background: 'var(--accent)' }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progress}%` }}
-                    />
-                </div>
-              </div>
-            </motion.div>
-          )}
+          {status === 'idle' && <motion.div key="i" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><UploadCloud size={44} strokeWidth={1.5} /></motion.div>}
+          {status === 'uploading' && <motion.div key="u" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><Loader2 size={44} className="animate-spin" /></motion.div>}
+          {status === 'success' && <motion.div key="s" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><CheckCircle2 size={44} color="#4ade80" /></motion.div>}
         </AnimatePresence>
       </div>
 
-      {error && (
-        <motion.div 
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="error-message"
-          style={{ color: 'var(--error)', marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
-        >
-          <AlertCircle size={18} />
-          {error}
-        </motion.div>
+      <div className="upload-info">
+        <h3>{status === 'uploading' ? `Uploading... ${progress}%` : status === 'success' ? 'Vault Secured.' : 'Drop files to Secure'}</h3>
+        <p>{status === 'idle' ? 'Encrypted cloud storage at the edge.' : 'Processing your assets across the global network.'}</p>
+      </div>
+
+      {status === 'uploading' && (
+          <div style={{ position: 'absolute', bottom: 0, left: 0, width: `${progress}%`, height: '4px', background: 'var(--accent-primary)', transition: 'width 0.2s' }} />
       )}
     </div>
   );

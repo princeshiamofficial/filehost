@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { File, Download, ExternalLink, Trash2, Copy } from 'lucide-react';
+import { File, ExternalLink, Copy, Check, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface BlobFile {
@@ -13,85 +13,60 @@ interface BlobFile {
 
 interface FileListProps {
   files: BlobFile[];
-  onDelete?: (url: string) => void;
 }
 
-export default function FileList({ files, onDelete }: FileListProps) {
+export default function FileList({ files }: FileListProps) {
+  const [copiedUrl, setCopiedUrl] = React.useState<string | null>(null);
+
   const formatSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return '0 B';
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    // You could add a toast notification here
+  const copy = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedUrl(url);
+    setTimeout(() => setCopiedUrl(null), 2000);
   };
 
   return (
-    <div className="file-list-container">
-      <h2 style={{ marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 700 }}>Recent Uploads</h2>
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', opacity: 0.6 }}>
+        <Clock size={16} />
+        <span style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>Vault Assets</span>
+      </div>
       
-      <div className="file-list">
+      <div className="vault-list">
         <AnimatePresence initial={false}>
           {files.length === 0 ? (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', background: 'var(--surface)', borderRadius: '20px' }}
-            >
-              <File size={40} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-              <p>No files uploaded yet. Start by dropping one above!</p>
-            </motion.div>
+            <div style={{ padding: '2rem 0', textAlign: 'center', opacity: 0.4, fontSize: '0.9rem' }}>
+              Your vault is empty.
+            </div>
           ) : (
-            files.map((file, index) => (
+            files.map((file, i) => (
               <motion.div
                 key={file.url}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: index * 0.05 }}
-                className="file-item"
+                transition={{ delay: i * 0.1 }}
+                className="file-row"
               >
-                <div className="file-info">
-                  <div className="file-icon">
+                <div style={{ color: 'var(--accent-primary)' }}>
                     <File size={20} />
-                  </div>
-                  <div className="file-details">
-                    <h3>{file.pathname}</h3>
-                    <p>{formatSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString()}</p>
-                  </div>
                 </div>
-
-                <div className="file-actions">
-                  <button 
-                    className="btn btn-secondary" 
-                    onClick={() => copyToClipboard(file.url)}
-                    title="Copy Link"
-                    style={{ padding: '0.5rem' }}
-                  >
-                    <Copy size={18} />
-                  </button>
-                  <a 
-                    href={file.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="btn btn-secondary"
-                    title="Open"
-                    style={{ padding: '0.5rem' }}
-                  >
-                    <ExternalLink size={18} />
-                  </a>
-                  <a 
-                    href={file.url} 
-                    download 
-                    className="btn btn-primary"
-                    title="Download"
-                    style={{ padding: '0.5rem' }}
-                  >
-                    <Download size={18} />
+                <div className="file-details-row">
+                  <h4>{file.pathname}</h4>
+                  <p>{formatSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString()}</p>
+                </div>
+                <div className="file-actions-row">
+                  <div className="small-btn" onClick={() => copy(file.url)}>
+                    {copiedUrl === file.url ? <Check size={12} /> : <Copy size={12} />}
+                  </div>
+                  <a href={file.url} target="_blank" rel="noreferrer" className="small-btn">
+                    <ExternalLink size={12} />
                   </a>
                 </div>
               </motion.div>
@@ -99,6 +74,6 @@ export default function FileList({ files, onDelete }: FileListProps) {
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </>
   );
 }
