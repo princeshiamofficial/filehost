@@ -77,6 +77,56 @@ body {
 @media (max-width: 900px) {
   .app-container {
     grid-template-columns: 1fr;
+    margin-top: 7rem;
+    gap: 2rem;
+  }
+  
+  h1 {
+    font-size: 2.75rem;
+  }
+  
+  .navbar {
+    top: 1rem;
+    width: calc(100% - 1.5rem);
+    padding: 0 1.25rem;
+    height: 3.5rem;
+  }
+
+  .navbar > div:last-child {
+    font-size: 0.7rem !important;
+    text-align: right;
+  }
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 2.25rem;
+  }
+
+  .logo {
+    font-size: 1.15rem;
+  }
+
+  .navbar > div:last-child {
+    display: none;
+  }
+
+  .app-container {
+    padding: 0 1rem 3rem;
+  }
+
+  .upload-card {
+    padding: 3rem 1.5rem;
+    border-radius: 24px;
+  }
+
+  .upload-info h3 {
+    font-size: 1.4rem;
+  }
+  
+  .upload-orb {
+    width: 80px;
+    height: 80px;
   }
 }
 
